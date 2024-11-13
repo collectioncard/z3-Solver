@@ -10,6 +10,11 @@
 
 //Path is just gonna have to be found with a loop or something ugh.
 import Phaser from "phaser";
+import {init} from "z3-solver";
+
+const {Context} = await init();
+const {Solver, Int, And, Or, Distinct} = new Context("main");
+const solver = new Solver();
 
 class Pathfinder extends Phaser.Scene {
     constructor() {
@@ -43,24 +48,91 @@ class Pathfinder extends Phaser.Scene {
         this.treesLayer = this.map.createLayer("Trees-n-Bushes", this.tileset, 0, 0);
         this.housesLayer = this.map.createLayer("Houses-n-Fences", this.tileset, 0, 0);
 
-        // Create townsfolk sprite
-        // Use setOrigin() to ensure the tile space computations work well
-        //my.sprite.purpleTownie = this.add.sprite(this.tileXtoWorld(5), this.tileYtoWorld(5), "purple").setOrigin(0,0);
-
         // Camera settings
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
         this.cameras.main.setZoom(this.SCALE);
 
         // Create grid of visible tiles for use with path planning
-        //let tinyTownGrid = this.layersToGrid([this.groundLayer, this.treesLayer, this.housesLayer]);
+        let tinyTownGrid = this.layersToGrid([this.groundLayer, this.treesLayer, this.housesLayer]);
+
+        //Place everything on the map
+
+        const validHiveLocs = this.placeBeehive(tinyTownGrid);
 
     }
 
+    layersToGrid() {
+        let grid = [];
+
+        for(let i = 0; i < this.map.height; i++) {
+            grid[i] = [];
+        }
+
+        for (let i = 0; i < this.map.layers.length; i++) {
+
+            let data = this.map.layers[i].data;
+            for (let j = 0; j < data.length; j++) {
+                for (let k = 0; k < data[j].length; k++) {
+                    if (data[j][k] != null && data[j][k].index !== -1) {
+                        grid[j][k] = data[j][k].index;
+                    }
+                }
+            }
+        }
+        return grid;
+    }
+
+
+    async placeBeehive(layerGrid) {
+        solver.reset();
+
+        const beehiveX = Int.const('beehiveX');
+        const beehiveY = Int.const('beehiveY');
+        const plainTileIndex = 1;
+        const beeHiveTileIndex = 95;
+
+        // Add constraints for the beehive position to be within the grid bounds
+        solver.add(beehiveX.ge(0));
+        solver.add(beehiveX.lt(layerGrid[0].length));
+        solver.add(beehiveY.ge(0));
+        solver.add(beehiveY.lt(layerGrid.length));
+
+        // Loop through the map and add constraints to avoid non-plain tiles
+        for (let i = 0; i < layerGrid.length; i++) {
+            for (let j = 0; j < layerGrid[i].length; j++) {
+                if (layerGrid[i][j] !== plainTileIndex) {
+                    solver.add(Or(beehiveX.neq(j), beehiveY.neq(i)));
+                }
+            }
+        }
+
+        // If sat, add the solution to a list, then remove it from the solver and repeat
+        let solutions = [];
+        while (await solver.check() === "sat") {
+            const model = solver.model();
+            const x = parseInt(model.eval(beehiveX).toString());
+            const y = parseInt(model.eval(beehiveY).toString());
+            solutions.push({ x, y });
+            solver.add(Or(beehiveX.neq(x), beehiveY.neq(y)));
+        }
+
+        //chose a random position and place the beehive there
+        if (solutions.length > 0) {
+            const randomIndex = Math.floor(Math.random() * solutions.length);
+            const chosenPosition = solutions[randomIndex];
+            const { x, y } = chosenPosition;
+
+            this.treesLayer.putTileAt(beeHiveTileIndex, x, y);
+        }
+
+        // Return the list of solutions
+        return solutions;
+    }
 
 }
 
 
-function generatePhasorScene(content) {
+function generatePhaserScene(content) {
     const config = {
         type: Phaser.AUTO,
         width: 640,
@@ -71,4 +143,4 @@ function generatePhasorScene(content) {
     return new Phaser.Game(config);
 }
 
-export { generatePhasorScene };
+export { generatePhaserScene };

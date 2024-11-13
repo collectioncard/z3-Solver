@@ -1,6 +1,6 @@
 import '../style.css'
 import { solveDecoration, solveLogicPuzzle, solvePosInFence, solveTreeOutsideFence } from './simpleZ3.js';
-import { generatePhasorScene } from './phaserSolver.js';
+import { generatePhaserScene } from './phaserSolver.js';
 
 const app = document.querySelector('#app');
 let phaserGame = null;
@@ -49,7 +49,7 @@ async function onSectionExpand(labelText, content) {
         'Placing a decoration on the fence': solveDecoration,
         'Place a tree outside the fence': solveTreeOutsideFence,
         'Generate a Phaser Scene': () => {
-            phaserGame = generatePhasorScene(content);
+            phaserGame = generatePhaserScene(content);
         }
     };
 
