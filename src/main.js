@@ -1,7 +1,9 @@
 import '../style.css'
 import { solveDecoration, solveLogicPuzzle, solvePosInFence, solveTreeOutsideFence } from './simpleZ3.js';
+import { generatePhasorScene } from './phaserSolver.js';
 
 const app = document.querySelector('#app');
+let phaserGame = null;
 
 function createElement(type, cssClassName, text = '') {
     const element = document.createElement(type);
@@ -24,8 +26,14 @@ function createDropdown(labelText, onExpand) {
     content.style.display = 'none';
 
     label.addEventListener('click', () => {
-        content.style.display = content.style.display === 'block' ? 'none' : 'block';
-        if (content.style.display === 'block'){
+        const isExpanded = content.style.display === 'block';
+        content.style.display = isExpanded ? 'none' : 'block';
+        if (isExpanded) {
+            if (labelText === 'Generate a Phaser Scene' && phaserGame) {
+                phaserGame.destroy(true);
+                phaserGame = null;
+            }
+        } else {
             onExpand(labelText, content);
         }
     });
@@ -39,19 +47,25 @@ async function onSectionExpand(labelText, content) {
         'A simple Logic Puzzle': solveLogicPuzzle,
         'Finding a position inside of a fence': solvePosInFence,
         'Placing a decoration on the fence': solveDecoration,
-        'Place a tree outside the fence': solveTreeOutsideFence
+        'Place a tree outside the fence': solveTreeOutsideFence,
+        'Generate a Phaser Scene': () => {
+            phaserGame = generatePhasorScene(content);
+        }
     };
 
     const solutionFunc = solutionMap[labelText] || (() => 'No solver found for this section');
     const result = await solutionFunc();
-    content.innerHTML = `<p>${result}</p>`;
+    if (labelText !== 'Generate a Phaser Scene') {
+        content.innerHTML = `<p>${result}</p>`;
+    }
 }
 
 const sections = [
     'A simple Logic Puzzle',
     'Finding a position inside of a fence',
     'Placing a decoration on the fence',
-    'Place a tree outside the fence'
+    'Place a tree outside the fence',
+    'Generate a Phaser Scene'
 ];
 
 sections.forEach(labelText => {
