@@ -50,6 +50,9 @@ async function onSectionExpand(labelText, content) {
         'Place a tree outside the fence': solveTreeOutsideFence,
         'Generate a Phaser Scene': () => {
             phaserGame = generatePhaserScene(content);
+            const note = document.createElement('p');
+            note.innerText = 'Check the console for all possible tile placements';
+            content.appendChild(note);
         }
     };
 
