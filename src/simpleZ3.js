@@ -103,12 +103,16 @@ async function solveTreeOutsideFence() {
     const x = Int.const('x');
     const y = Int.const('y');
 
-    solver.add(x.ge(8), x.ge(fenceRightX+1));
-    solver.add(y.ge(20), y.ge(fenceBottomY+1));
+    solver.add(
+        x.ge(8),
+        y.ge(20),
+        Or(x.lt(fenceLeftX), x.gt(fenceRightX)),
+        Or(y.lt(fenceTopY), y.gt(fenceBottomY))
+    );
 
-    if(await solver.check() === "unsat"){
+    if (await solver.check() === "unsat") {
         return "No solution found";
-    }else{
+    } else {
         return `Solution found:<br>X position: ${solver.model().eval(x)}, Y position: ${solver.model().eval(y)}`;
     }
 }
